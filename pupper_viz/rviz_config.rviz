@@ -8,7 +8,6 @@ Panels:
         - /Status1
         - /RobotModel1/Description Topic1
         - /Map1
-        - /Map1/Status1
       Splitter Ratio: 0.5
     Tree Height: 576
   - Class: rviz_common/Selection
@@ -205,7 +204,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: odom
+    Fixed Frame: map
     Frame Rate: 30
   Name: root
   Tools:

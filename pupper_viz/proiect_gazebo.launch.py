@@ -1,17 +1,13 @@
-from launch import LaunchDescription
-from launch.actions import RegisterEventHandler
-from launch.event_handlers import OnProcessExit
-from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
-from launch.actions import ExecuteProcess
-
-from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-
 import os
-
+from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
+from launch_ros.actions import Node
 
 def generate_launch_description():
-    # Get URDF via xacro
+    
+    # 1. Obținere URDF prin xacro (Exact ca în proiect.launch.py care funcționa)
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -25,21 +21,22 @@ def generate_launch_description():
         ]
     )
     robot_description = {"robot_description": robot_description_content}
-
-    robot_controllers = PathJoinSubstitution(
-        [
-            os.path.dirname(__file__),
-            "lab_4.yaml",
-        ]
-    )
+    
     rviz_config_file = PathJoinSubstitution(
         [os.path.dirname(__file__), "rviz_config.rviz"]
     )
 
+    # 2. Setăm calea de resurse pentru ca Gazebo să găsească mesh-urile STL
+    set_gz_resource_path = SetEnvironmentVariable(
+        name='GZ_SIM_RESOURCE_PATH',
+        value=['/ws/src:', '/ws/install:']
+    )
+
+    # 3. Nodurile de bază din proiectul tău funcțional
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[robot_description, robot_controllers],
+        parameters=[robot_description, PathJoinSubstitution([os.path.dirname(__file__), "gazebo.yaml"])],
         output="both",
     )
     
@@ -47,7 +44,7 @@ def generate_launch_description():
         package="robot_state_publisher",
         executable="robot_state_publisher",
         output="both",
-        parameters=[robot_description],
+        parameters=[robot_description, {'use_sim_time': True}],
     )
     
     rviz_node = Node(
@@ -56,33 +53,28 @@ def generate_launch_description():
         name="rviz2",
         output="log",
         arguments=["-d", rviz_config_file],
+        parameters=[{'use_sim_time': True}],
     )
 
-    # -------------------------------------------------------------
-    # ADĂUGAT: Nodul pentru LiDAR-ul artificial (dummy_laser)
-    # -------------------------------------------------------------
     dummy_laser_node = Node(
         package="dummy_sensors",
         executable="dummy_laser",
         name="dummy_laser",
         output="screen",
+        parameters=[{'use_sim_time': True}],
     )
 
-    # -------------------------------------------------------------
-    # ADĂUGAT: Transformare TF statică între base_link și LiDAR
-    # Modifică x, y, z dacă vrei ca LiDAR-ul să fie într-o poziție anume pe robot.
-    # -------------------------------------------------------------
     static_tf_node = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
         name="lidar_static_tf_publisher",
         arguments=[
-            "0.0", "0.0", "0.1",   # x, y, z
-            "0.0", "0.0", "0.0",   # yaw, pitch, roll
+            "0.0", "0.0", "0.1",
+            "0.0", "0.0", "0.0",
             "base_link",
             "single_rrbot_hokuyo_link"
         ],
-        parameters=[{'use_sim_time': False}],
+        parameters=[{'use_sim_time': True}],
         output="screen",
     )
 
@@ -92,71 +84,39 @@ def generate_launch_description():
         arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager", "--controller-manager-timeout", "30"],
     )
 
-    imu_sensor_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["imu_sensor_broadcaster", "--controller-manager", "/controller_manager", "--controller-manager-timeout", "30"],
-    )
-
     robot_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=["forward_command_controller", "--controller-manager", "/controller_manager", "--controller-manager-timeout", "30"],
     )
 
-    #Nodul SLAM Toolbox
     slam_node = Node(
         package='slam_toolbox',
         executable='async_slam_toolbox_node',
         name='slam_toolbox',
         output='screen',
         parameters=[{
-            'use_sim_time': False,
+            'use_sim_time': True,
             'base_frame': 'base_link',
             'odom_frame': 'odom',
             'map_frame': 'map',
             'scan_topic': '/scan',
             'mode': 'mapping',
             'transform_timeout': 1.0,
-            'minimum_travel_distance': 0.0,  # Permite actualizarea hărții pe loc
+            'minimum_travel_distance': 0.0,
             'minimum_travel_heading': 0.0,
             'map_update_interval': 0.5,
         }]
     )
 
-    # TF Static temporar pentru Odometrie
     odom_tf_node = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
         name="odom_static_tf_publisher",
-        arguments=[
-            "0.0", "0.0", "0.0",
-            "0.0", "0.0", "0.0",
-            "odom",
-            "base_link"
-        ],
-        parameters=[{'use_sim_time': False}],
+        arguments=["0.0", "0.0", "0.0", "0.0", "0.0", "0.0", "odom", "base_link"],
+        parameters=[{'use_sim_time': True}],
         output="screen"
     )
-
-    '''dummy_odom_node = Node(
-        executable='/ws/dummy_odometry.py',
-        name='dummy_odometry_node',
-        output='screen'
-    )'''
-
-    delay_robot_controller_spawner_after_joint_state_broadcaster_spawner = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=joint_state_broadcaster_spawner,
-            on_exit=[robot_controller_spawner],
-        )
-    )
-
-    ik_node = ExecuteProcess(
-        cmd=["python3", "/work/lab_4.py"],
-        output="screen",
-    )
-
 
     initial_map_server = Node(
         package='nav2_map_server',
@@ -164,7 +124,7 @@ def generate_launch_description():
         name='initial_map_server',
         output='screen',
         parameters=[{
-            'use_sim_time': False,
+            'use_sim_time': True,
             'yaml_filename': '/work/empty_map.yaml'
         }]
     )
@@ -175,45 +135,71 @@ def generate_launch_description():
         name='lifecycle_manager_initial_map',
         output='screen',
         parameters=[{
-            'use_sim_time': False,
+            'use_sim_time': True,
             'autostart': True,
             'node_names': ['initial_map_server']
         }]
     )
     
-    # Transformare statică temporară map -> odom
-    # Aceasta menține cadrul 'map' conectat și vizibil în RViz2 din secunda 0
     map_to_odom_tf = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
         name="map_to_odom_publisher",
-        arguments=[
-            "0.0", "0.0", "0.0",
-            "0.0", "0.0", "0.0",
-            "map",
-            "odom"
-        ],
-        parameters=[{'use_sim_time': False}],
+        arguments=["0.0", "0.0", "0.0", "0.0", "0.0", "0.0", "map", "odom"],
+        parameters=[{'use_sim_time': True}],
         output="screen"
     )
-    
+
+    # 4. Adăugare Gazebo Simulator (lumea cu obstacole shapes.sdf)
+    gazebo_sim = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                '/opt/ros/jazzy/share/ros_gz_sim/launch/gz_sim.launch.py'
+            ])
+        ]),
+        launch_arguments={'gz_args': '-r shapes.sdf'}.items()
+    )
+
+    # 5. Spawnează modelul Pupper direct din topicul /robot_description generat de xacro
+    spawn_robot = Node(
+        package='ros_gz_sim',
+        executable='create',
+        arguments=[
+            '-topic', 'robot_description',
+            '-name', 'pupper_v3',
+            '-z', '0.2'
+        ],
+        output='screen'
+    )
+
+    # 6. Puntea de comunicare ROS 2 <-> Gazebo pentru ceas și scanări
+    ros_gz_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=[
+            '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+            '/tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V'
+        ],
+        parameters=[{'use_sim_time': True}],
+        output='screen'
+    )
 
     nodes = [
+        set_gz_resource_path,
         control_node,                                      
         robot_state_pub_node,                              
         joint_state_broadcaster_spawner,                  
-        imu_sensor_broadcaster_spawner,                    
-        #ik_node,                                          #inverse kinematics , dezactivat
-        rviz_node,                                            # Deschide RViz2
-        dummy_laser_node,                                     # Deschide senzorul LiDAR artificial
-        static_tf_node,                                      # Publică TF-ul dintre base_link și LiDAR
-        #delay_robot_controller_spawner_after_joint_state_broadcaster_spawner,
-        slam_node,                                          # algoritm SLAM
-        odom_tf_node,                                      # odometrie statica
-        #dummy_odom_node,                                     # odometrie dinamica
+        rviz_node,                                            
+        dummy_laser_node,                                     
+        static_tf_node,                                      
+        slam_node,                                          
+        odom_tf_node,                                      
         initial_map_server,
         lifecycle_manager_node,
         map_to_odom_tf,
+        gazebo_sim,
+        spawn_robot,
+        ros_gz_bridge,
     ]
 
     return LaunchDescription(nodes)

@@ -13,13 +13,25 @@ IT=""
 
 # --ulimit core=0: a crashing ros2_control_node otherwise leaves multi-GB
 # core files in ws/ (the container inherits the host's core pattern).
-docker run --rm $IT \
-    --net=host \
-    --ulimit core=0 \
-    -e DISPLAY="$DISPLAY" \
-    -e QT_X11_NO_MITSHM=1 \
-    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-    -v "$HERE":/work \
-    pupper_viz \
-        ros2 launch /work/proiect.launch.py
+if [[ $1 == "1" ]]; then
+    docker run --rm $IT \
+        --net=host \
+        --ulimit core=0 \
+        -e DISPLAY="$DISPLAY" \
+        -e QT_X11_NO_MITSHM=1 \
+        -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+        -v "$HERE":/work \
+        pupper_viz \
+            ros2 launch /work/proiect_gazebo.launch.py
+else
+    docker run --rm $IT \
+        --net=host \
+        --ulimit core=0 \
+        -e DISPLAY="$DISPLAY" \
+        -e QT_X11_NO_MITSHM=1 \
+        -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+        -v "$HERE":/work \
+        pupper_viz \
+            ros2 launch /work/proiect.launch.py
+fi
 

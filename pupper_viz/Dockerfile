@@ -14,6 +14,12 @@ RUN apt-get -o Acquire::AllowInsecureRepositories=true \
         ros-jazzy-slam-toolbox \
         ros-jazzy-dummy-sensors \
         ros-jazzy-tf2-ros \
+        ros-jazzy-nav2-map-server \
+        ros-jazzy-nav2-lifecycle-manager \
+        ros-jazzy-ros-gz \
+        ros-jazzy-ros-gz-sim \
+        ros-jazzy-ros-gz-bridge \
+        ros-jazzy-ros-gz-interfaces\
         wmctrl x11-utils \
         git \
     && rm -rf /var/lib/apt/lists/*
