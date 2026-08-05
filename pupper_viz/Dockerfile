@@ -10,7 +10,9 @@ RUN apt-get -o Acquire::AllowInsecureRepositories=true \
         ros-jazzy-joint-state-publisher-gui \
         ros-jazzy-xacro \
         ros-jazzy-controller-manager \
+        ros-jazzy-ros2-control \
         ros-jazzy-ros2-controllers \
+        ros-jazzy-gz-ros2-control \
         ros-jazzy-slam-toolbox \
         ros-jazzy-dummy-sensors \
         ros-jazzy-tf2-ros \
@@ -19,7 +21,7 @@ RUN apt-get -o Acquire::AllowInsecureRepositories=true \
         ros-jazzy-ros-gz \
         ros-jazzy-ros-gz-sim \
         ros-jazzy-ros-gz-bridge \
-        ros-jazzy-ros-gz-interfaces\
+        ros-jazzy-ros-gz-interfaces \
         wmctrl x11-utils \
         git \
     && rm -rf /var/lib/apt/lists/*
@@ -31,8 +33,6 @@ RUN git clone https://github.com/G-Levine/pupper_v3_description /ws/src/pupper_v
 
 RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && colcon build --symlink-install"
 
-
 ENV QT_X11_NO_MITSHM=1
 ENTRYPOINT ["/bin/bash", "-lc", "set -e; for f in {/opt/ros/jazzy,/ws/install}/setup.bash; do [ -f \"$f\" ] && source \"$f\"; done; exec \"$@\"", "entrypoint"]
 CMD ["bash"]
-

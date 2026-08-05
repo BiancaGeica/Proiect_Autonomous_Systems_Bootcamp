@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="pupper_v3">
+
+  <!-- Includem descrierea originală a robotului -->
+  <xacro:include filename="$(find pupper_v3_description)/description/urdf/pupper_v3.edited.fixed.urdf" />
+  <xacro:include filename="$(find pupper_v3_description)/description/components.xacro" />
+
+  <!-- Corectăm comportamentul bazei în Gazebo pentru a preveni eroarea de legătură deconectată -->
+  <gazebo reference="base_link">
+    <gravity>true</gravity>
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>100</update_rate>
+      <topic>imu</topic>
+    </sensor>
+  </gazebo>
+
+  <!-- Plugin hardware nativ pentru Gazebo / ros2_control -->
+  <ros2_control name="GazeboSystem" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+    <xacro:define_components />
+  </ros2_control>
+
+  <!-- Plugin Gazebo care pornește controller_manager -->
+  <gazebo>
+    <plugin filename="libgz_ros2_control-system.so" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>/work/gazebo.yaml</parameters>
+    </plugin>
+  </gazebo>
+
+  <!-- Configurare Lidar (GPU Laser) -->
+  <gazebo reference="single_rrbot_hokuyo_link">
+    <sensor name="gpu_lidar" type="gpu_lidar">
+      <update_rate>10</update_rate>
+      <topic>scan</topic>
+      <gz_frame_id>single_rrbot_hokuyo_link</gz_frame_id>
+      <lidar>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.15</min>
+          <max>10.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </lidar>
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+    </sensor>
+  </gazebo>
+
+</robot>
