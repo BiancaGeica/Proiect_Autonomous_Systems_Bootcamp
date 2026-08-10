@@ -1,6 +1,15 @@
 # Proiect_Autonomous_Systems_Bootcamp
 
-## Stare Curentă: Erori Gazebo Eliminate, WIP afisare Pupper in gazebo:
+## Stare Curentă: Fix pupper afisare in gazebo
+* **Realizat:** 
+  * am rezolvat afisarea pupper in gazebo
+* **TODO:** 
+  * Testare si modificare SLAM pentru mapare corecta
+  * (Optional) Portare pe windows pentru performanta mai buna (lucrez pe VM , nu pot folosi toate resursele necesare)
+
+---
+
+## Erori Gazebo Eliminate, WIP afisare Pupper in gazebo:
 * **Realizat:** 
   * am rezolvat erorile din gazebo
 * **TODO:** 
