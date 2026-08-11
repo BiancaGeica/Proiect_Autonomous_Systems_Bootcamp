@@ -5,7 +5,50 @@
   <xacro:include filename="$(find pupper_v3_description)/description/urdf/pupper_v3.edited.fixed.urdf" />
   <xacro:include filename="$(find pupper_v3_description)/description/components.xacro" />
 
-  <!-- Corectăm comportamentul bazei în Gazebo pentru a preveni eroarea de legătură deconectată -->
+  <!-- Adăugăm Link-ul și Joint-ul pentru Lidar -->
+  <link name="hokuyo_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.03" length="0.04"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.03" length="0.04"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <joint name="hokuyo_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="hokuyo_link"/>
+    <origin xyz="0.05 0.0 0.10" rpy="0 0 0"/> 
+  </joint>
+
+  <!-- Gazebo Plugins -->
+  <gazebo>
+    <!-- Plugin esențial pentru senzori -->
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    
+    <!-- Plugin ROS2 Control -->
+    <plugin filename="libgz_ros2_control-system.so" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>/work/gazebo.yaml</parameters>
+    </plugin>
+  </gazebo>
+
+  <!-- IMU Sensor -->
   <gazebo reference="base_link">
     <gravity>true</gravity>
     <sensor name="imu_sensor" type="imu">
@@ -15,7 +58,7 @@
     </sensor>
   </gazebo>
 
-  <!-- Plugin hardware nativ pentru Gazebo / ros2_control -->
+  <!-- ROS2 Control -->
   <ros2_control name="GazeboSystem" type="system">
     <hardware>
       <plugin>gz_ros2_control/GazeboSimSystem</plugin>
@@ -23,20 +66,15 @@
     <xacro:define_components />
   </ros2_control>
 
-  <!-- Plugin Gazebo care pornește controller_manager -->
-  <gazebo>
-    <plugin filename="libgz_ros2_control-system.so" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
-      <parameters>/work/gazebo.yaml</parameters>
-    </plugin>
-  </gazebo>
-
   <!-- Configurare Lidar (GPU Laser) -->
-  <gazebo reference="single_rrbot_hokuyo_link">
+  <gazebo reference="hokuyo_link">
     <sensor name="gpu_lidar" type="gpu_lidar">
+      <always_on>1</always_on>
       <update_rate>10</update_rate>
+      <visualize>true</visualize>
       <topic>scan</topic>
-      <gz_frame_id>single_rrbot_hokuyo_link</gz_frame_id>
-      <lidar>
+      <gz_frame_id>hokuyo_link</gz_frame_id>
+      <ray>
         <scan>
           <horizontal>
             <samples>360</samples>
@@ -50,14 +88,7 @@
           <max>10.0</max>
           <resolution>0.01</resolution>
         </range>
-        <noise>
-          <type>gaussian</type>
-          <mean>0.0</mean>
-          <stddev>0.01</stddev>
-        </noise>
-      </lidar>
-      <always_on>true</always_on>
-      <visualize>true</visualize>
+      </ray>
     </sensor>
   </gazebo>
 

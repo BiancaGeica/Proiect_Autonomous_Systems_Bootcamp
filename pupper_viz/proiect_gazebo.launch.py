@@ -96,7 +96,6 @@ def generate_launch_description():
     except Exception:
         ws_root = '/ws'
 
-    # Extindem GZ_SIM_RESOURCE_PATH pentru ca Gazebo să găsească mesh-urile STL/DAE
     extra_paths = [
         os.path.join(ws_root, 'src'),
         os.path.join(ws_root, 'install'),
@@ -129,23 +128,15 @@ def generate_launch_description():
         parameters=[{'use_sim_time': True}],
     )
 
-    dummy_laser_node = Node(
-        package="dummy_sensors",
-        executable="dummy_laser",
-        name="dummy_laser",
-        output="screen",
-        parameters=[{'use_sim_time': True}],
-    )
-
     static_tf_node = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
         name="lidar_static_tf_publisher",
         arguments=[
-            "0.0", "0.0", "0.1",
+            "0.0", "0.0", "0.25",
             "0.0", "0.0", "0.0",
             "base_link",
-            "single_rrbot_hokuyo_link"
+            "hokuyo_link"
         ],
         parameters=[{'use_sim_time': True}],
         output="screen",
@@ -223,7 +214,6 @@ def generate_launch_description():
         output="screen"
     )
 
-    # Gazebo Simulator (lumea shapes.sdf)
     gazebo_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
@@ -233,25 +223,26 @@ def generate_launch_description():
         launch_arguments={'gz_args': '-r shapes.sdf'}.items()
     )
 
-    # Spawnează modelul Pupper mai sus pe axa Z
     spawn_robot = Node(
         package='ros_gz_sim',
         executable='create',
         arguments=[
             '-topic', 'robot_description',
             '-name', 'pupper_v3',
-            '-z', '2.0'
+            '-x', '-2.0',  # Mută robotul la 2 metri în spatele originii (pe axa X negativă)
+            '-y', '0.0',
+            '-z', '1.0'    # Îl menținem la 1 metru înălțime pentru a evita intersecția inițială
         ],
         output='screen'
     )
 
-    # Puntea de comunicare ROS 2 <-> Gazebo
     ros_gz_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
-            '/tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V'
+            '/tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V',
+            '/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan'
         ],
         parameters=[{'use_sim_time': True}],
         output='screen'
@@ -262,8 +253,7 @@ def generate_launch_description():
         robot_state_pub_node,                              
         joint_state_broadcaster_spawner,                  
         robot_controller_spawner,
-        rviz_node,                                            
-        dummy_laser_node,                                     
+        rviz_node,                                                                       
         static_tf_node,                                      
         slam_node,                                          
         odom_tf_node,                                      
