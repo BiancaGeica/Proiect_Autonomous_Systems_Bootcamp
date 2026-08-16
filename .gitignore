@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# ROS 2
+build/
+install/
+log/
+
+# RViz logs
+*.rviz.bak
+
+# Gazebo
+.gz/
+*.log
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
