@@ -139,11 +139,11 @@ def generate_launch_description():
         output="screen"
     )
 
-    '''dummy_odom_node = Node(
-        executable='/ws/dummy_odometry.py',
+    dummy_odom_node = Node(
+        executable='/work/dummy_odometry.py',
         name='dummy_odometry_node',
         output='screen'
-    )'''
+    )
 
     delay_robot_controller_spawner_after_joint_state_broadcaster_spawner = RegisterEventHandler(
         event_handler=OnProcessExit(
@@ -209,8 +209,8 @@ def generate_launch_description():
         static_tf_node,                                      # Publică TF-ul dintre base_link și LiDAR
         #delay_robot_controller_spawner_after_joint_state_broadcaster_spawner,
         slam_node,                                          # algoritm SLAM
-        odom_tf_node,                                      # odometrie statica
-        #dummy_odom_node,                                     # odometrie dinamica
+        #odom_tf_node,                                      # odometrie statica
+        dummy_odom_node,                                     # odometrie dinamica
         initial_map_server,
         lifecycle_manager_node,
         map_to_odom_tf,

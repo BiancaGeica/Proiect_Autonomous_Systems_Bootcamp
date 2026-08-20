@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import math
 import rclpy
 from rclpy.node import Node
@@ -67,7 +69,7 @@ class DummyOdometry(Node):
 
         t.transform.translation.x = self.x
         t.transform.translation.y = self.y
-        t.transform.translation.z = 0.0
+        t.transform.translation.z = 0.132
 
         t.transform.rotation.x = 0.0
         t.transform.rotation.y = 0.0
